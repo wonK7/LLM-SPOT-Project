@@ -1,0 +1,37 @@
+{
+  "header": {
+    "timestamp": "2026-03-03T12:30:00Z",
+    "robot_id": "spot-01"
+  },
+  "perception": {
+    "input_source": "speech",
+    "raw_input": "Grab the apple",
+    "interpretation": {
+      "category": "manipulation",
+      "name": "grab",
+      "confidence": 0.93
+    },
+    "visual_context": {
+      "target_detected": true,
+      "label": "apple",
+      "frame": "camera_frame",
+      "coordinates_3d": {
+        "x": 0.2,
+        "y": -0.1,
+        "z": 0.4
+      }
+    }
+  },
+  "behavior_execution": {
+    "primitive": "grab",
+    "priority": "normal",
+    "parameters": {
+      "frame": "base_link",
+      "coordinates_3d": {
+        "x": 0.5,
+        "y": -0.2,
+        "z": 0.1
+      }
+    }
+  }
+}
