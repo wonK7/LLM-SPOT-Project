@@ -8,6 +8,8 @@ SCHEMA_COMMANDS = [
     "RotateRight",
     "Stand",
     "Sit",
+    "ArmUnstow",
+    "ArmStow",
     "GraspHand",
     "ReleaseHand",
     "ExtendArm",
@@ -23,6 +25,8 @@ PRIMITIVE_TO_SNIPPET = {
     "RotateRight": "rotate_right",
     "Stand": "stand",
     "Sit": "sit",
+    "ArmUnstow": "arm_unstow",
+    "ArmStow": "arm_stow",
     "GraspHand": "grasp_hand",
     "ReleaseHand": "release_hand",
     "ExtendArm": "extend_arm",
@@ -30,5 +34,15 @@ PRIMITIVE_TO_SNIPPET = {
 
 SUPPORTED_EXECUTION_SNIPPETS = {
     "walk_forward",
+    "walk_backward",
+    "walk_left",
+    "walk_right",
+    "rotate_left",
+    "rotate_right",
     "stop",
+    "arm_unstow",
+    "arm_stow",
+    "grasp_hand",
+    "release_hand",
+    "extend_arm",
 }

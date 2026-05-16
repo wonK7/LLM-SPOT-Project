@@ -1,1 +1,19 @@
-input.wav
+# ROS 2 build artifacts
+/build/
+/install/
+/log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor settings
+.vscode/
+
+# Local docs and generated media
+/docs/
+*.wav
+*.mp3
+
+# Local environment files
+.env

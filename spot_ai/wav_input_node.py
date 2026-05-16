@@ -10,7 +10,7 @@ class WavInputNode(Node):
         super().__init__("wav_input_node")
 
         self.declare_parameter(
-            "audio_file", "/mnt/c/Users/jaeyk/Desktop/Spot/LLM-SPOT-Project/input.wav"
+            "audio_file", "/tmp/spot_ai_input.wav"
         )
         self.declare_parameter("whisper_model", "base")
         self.declare_parameter("whisper_language", "en")
@@ -41,6 +41,7 @@ class WavInputNode(Node):
 
         self.pub = self.create_publisher(String, self.target_topic, 10)
 
+        # One-shot timer to publish after startup so subscribers can connect.
         self._startup_timer = self.create_timer(1.0, self._run_once)
         self.completed = False
 
@@ -101,6 +102,7 @@ def main(args=None) -> None:
     rclpy.init(args=args)
     node = WavInputNode()
 
+    # Spin until the one-shot publish job completes.
     while rclpy.ok() and not node.completed:
         rclpy.spin_once(node, timeout_sec=0.2)
 

@@ -19,7 +19,8 @@ class SpotAIBrain(Node):
         
         # 1. Gemini Configuration
         api_key = os.getenv("GEMINI_API_KEY")
-        genai.configure(api_key=api_key, transport='rest')
+        genai.configure(api_key=api_key)
+
         try:
             available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
             # Automatically select the first available model 
@@ -60,7 +61,7 @@ class SpotAIBrain(Node):
         model = whisper.load_model("base")
 
         # Windows Desktop path
-        audio_path = "/mnt/c/Users/jaeyk/Desktop/input.wav"
+        audio_path = "/tmp/spot_ai_input.wav"
 
         result = model.transcribe(audio_path)
 
@@ -83,7 +84,7 @@ class SpotAIBrain(Node):
             tts = gTTS(text)
             tts.save("speech.mp3")
             os.system("mpg123 speech.mp3")
-            #playsound("speech.mp3")
+            playsound("speech.mp3")
 
         except Exception as e:
             self.get_logger().error(f"Error calling the brain: {e}")

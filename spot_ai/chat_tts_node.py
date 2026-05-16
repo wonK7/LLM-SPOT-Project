@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 
 import rclpy
 from rclpy.node import Node
@@ -14,6 +15,7 @@ except Exception:
 CHAT_SYSTEM_PROMPT = (
     "You are Spot's demo chat assistant. "
     "Reply in concise, natural English. "
+    "You may answer simple social requests, including brief harmless jokes. "
     "Keep each response under 2 short sentences."
 )
 
@@ -24,22 +26,31 @@ class SpotChatTTSNode(Node):
 
         self.declare_parameter("chat_input_topic", "/spot_ai/chat_input")
         self.declare_parameter("chat_output_topic", "/spot_ai/chat_output")
+        self.declare_parameter("status_topic", "/spot_ai/status")
         self.declare_parameter(
-            "tts_file_wsl", "/mnt/c/Users/jaeyk/Desktop/Spot/LLM-SPOT-Project/speech.mp3"
+            "tts_file_wsl", "/tmp/spot_ai_speech.mp3"
         )
         self.declare_parameter("tts_lang", "en")
+        self.declare_parameter("tts_player_cmd", "mpg123")
         self.declare_parameter("auto_play_windows", True)
 
         self.chat_input_topic = self.get_parameter("chat_input_topic").value
         self.chat_output_topic = self.get_parameter("chat_output_topic").value
+        self.status_topic = self.get_parameter("status_topic").value
         self.tts_file_wsl = self.get_parameter("tts_file_wsl").value
         self.tts_lang = self.get_parameter("tts_lang").value
+        self.tts_player_cmd = self.get_parameter("tts_player_cmd").value
         self.auto_play_windows = self.get_parameter("auto_play_windows").value
 
         self.chat_sub = self.create_subscription(
             String, self.chat_input_topic, self._on_chat_input, 10
         )
+        self.chat_output_sub = self.create_subscription(
+            String, self.chat_output_topic, self._on_chat_output, 10
+        )
         self.chat_pub = self.create_publisher(String, self.chat_output_topic, 10)
+        self.status_pub = self.create_publisher(String, self.status_topic, 10)
+        self._last_self_output = ""
 
         self.model = self._init_model()
         self.get_logger().info(
@@ -79,10 +90,23 @@ class SpotChatTTSNode(Node):
         response_text = self._generate_reply(user_text)
         out = String()
         out.data = response_text
+        self._last_self_output = response_text
         self.chat_pub.publish(out)
+        self.status_pub.publish(out)
 
         self.get_logger().info(f"chat_output: {response_text}")
         self._speak_and_play(response_text)
+
+    def _on_chat_output(self, msg: String) -> None:
+        text = (msg.data or "").strip()
+        if not text:
+            return
+        if text == self._last_self_output:
+            self._last_self_output = ""
+            return
+        self.get_logger().info(f"speaking external chat_output: {text}")
+        self.status_pub.publish(msg)
+        self._speak_and_play(text)
 
     def _generate_reply(self, user_text: str) -> str:
         if not self.model:
@@ -107,6 +131,23 @@ class SpotChatTTSNode(Node):
             self.get_logger().warning(f"TTS synth failed: {exc}")
             return
 
+        try:
+            result = subprocess.run(
+                [self.tts_player_cmd, self.tts_file_wsl],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env=self._get_pulse_env(),
+                timeout=8,
+            )
+            if result.returncode == 0:
+                return
+            self.get_logger().warning(
+                f"Local TTS playback failed: {self.tts_player_cmd} returned {result.returncode}"
+            )
+        except Exception as exc:
+            self.get_logger().warning(f"Local TTS playback failed: {exc}")
+
         if not self.auto_play_windows:
             return
 
@@ -117,7 +158,7 @@ class SpotChatTTSNode(Node):
 
         try:
             subprocess.run(
-                ["cmd.exe", "/c", "start", "", win_path],
+                [self._windows_cmd(), "/c", "start", "", win_path],
                 check=False,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -126,14 +167,26 @@ class SpotChatTTSNode(Node):
             self.get_logger().warning(f"Windows auto-play failed: {exc}")
 
     @staticmethod
+    def _get_pulse_env() -> dict:
+        env = dict(os.environ)
+        wslg_socket = "/mnt/wslg/runtime-dir/pulse/native"
+        if not env.get("PULSE_SERVER") and os.path.exists(wslg_socket):
+            env["PULSE_SERVER"] = f"unix:{wslg_socket}"
+        return env
+
+    @staticmethod
+    def _windows_cmd() -> str:
+        return shutil.which("cmd.exe") or "cmd.exe"
+
+    @staticmethod
     def _wsl_to_windows_path(wsl_path: str) -> str:
+        # Convert /mnt/c/Users/... -> C:\Users\...
         prefix = "/mnt/"
         if not wsl_path.startswith(prefix) or len(wsl_path) < 7:
             return ""
         drive = wsl_path[5].upper()
         rest = wsl_path[7:].replace("/", "\\")
         return f"{drive}:\\{rest}"
-
 
 def main(args=None) -> None:
     rclpy.init(args=args)
