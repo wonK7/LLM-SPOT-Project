@@ -161,3 +161,8 @@ export GEMINI_MODEL="gemini-2.5-flash"
 ```
 
 If the Gemini key is missing, the parser falls back to rule-based command parsing.
+
+## Demo Videos
+
+- Spot execution: https://www.youtube.com/watch?v=6kiqOmfFlxU
+- Spot terminal: https://www.youtube.com/watch?v=c8kzpU7zRjs
